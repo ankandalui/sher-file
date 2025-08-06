@@ -106,17 +106,44 @@ const isMobile = () => {
 };
 
 const shouldUseRedirect = () => {
-  return (
-    isMobile() ||
+  if (typeof window === "undefined") return false;
+
+  // Always use redirect on mobile
+  if (isMobile()) {
+    console.log("🔐 Mobile device detected, using redirect");
+    return true;
+  }
+
+  // Use redirect for PWA/standalone apps
+  if (
     (window.navigator as Navigator & { standalone?: boolean }).standalone ===
-      true
-  );
+    true
+  ) {
+    console.log("🔐 PWA detected, using redirect");
+    return true;
+  }
+
+  // Use redirect for smaller screens (mobile-like experience)
+  if (window.innerWidth <= 768) {
+    console.log("🔐 Small screen detected, using redirect");
+    return true;
+  }
+
+  return false;
 };
 
 // Sign in with Google - with popup and redirect fallback
 export const signInWithGoogle = async () => {
   try {
     console.log("🔐 Starting Google Sign-in...");
+    console.log(
+      "🔐 User agent:",
+      typeof window !== "undefined" ? navigator.userAgent : "Server side"
+    );
+    console.log(
+      "🔐 Screen width:",
+      typeof window !== "undefined" ? window.innerWidth : "Server side"
+    );
     console.log("🔐 Should use redirect:", shouldUseRedirect());
 
     let result;
@@ -124,6 +151,7 @@ export const signInWithGoogle = async () => {
     if (shouldUseRedirect()) {
       console.log("🔐 Using redirect method for mobile/PWA");
       await signInWithRedirect(auth, googleProvider);
+      console.log("🔐 Redirect initiated - user will be redirected to Google");
       return null; // Redirect will handle the rest
     } else {
       console.log("🔐 Using popup method");
@@ -211,6 +239,7 @@ export const handleRedirectResult = async () => {
       return result.user;
     }
 
+    console.log("🔐 No redirect result found");
     return null;
   } catch (error: unknown) {
     const authError = error as { code?: string; message?: string };
@@ -226,11 +255,12 @@ export const handleRedirectResult = async () => {
         console.log(
           "🔐 Account exists with different credential - user needs to link accounts"
         );
-        break;
+        // Don't throw error, just return null to let the user try again
+        return null;
       case "auth/credential-already-in-use":
         console.log("🔐 Credential already in use - clearing auth state");
         await signOutUser();
-        break;
+        return null;
       case "auth/user-disabled":
         console.log("🔐 User account is disabled");
         break;
@@ -240,9 +270,17 @@ export const handleRedirectResult = async () => {
       case "auth/invalid-credential":
         console.log("🔐 Invalid credential");
         break;
+      case "auth/popup-closed-by-user":
+        console.log("🔐 Popup was closed by user");
+        return null;
+      case "auth/cancelled-popup-request":
+        console.log("🔐 Popup request was cancelled");
+        return null;
     }
 
-    throw error;
+    // For other errors, don't throw but return null to allow retry
+    console.log("🔐 Returning null due to error, allowing retry");
+    return null;
   }
 };
 

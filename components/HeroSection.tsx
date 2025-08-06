@@ -30,8 +30,10 @@ export default function HeroSection() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Profile Dropdown - Only visible when logged in */}
-      <ProfileDropdown />
+      {/* Profile Dropdown - Positioned in top-right corner */}
+      <div className="absolute top-4 right-4 z-50">
+        <ProfileDropdown />
+      </div>
 
       {/* Hero Section with DarkVeil Background */}
       <div className="relative w-full h-screen">

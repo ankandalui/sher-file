@@ -22,14 +22,22 @@ export default function AuthProvider({
         if (redirectUser) {
           console.log("🔐 Redirect user found:", redirectUser.email);
           dispatch(setUser(redirectUser));
+        } else {
+          console.log(
+            "🔐 No redirect user found, continuing with auth state listener"
+          );
         }
       } catch (error) {
         console.error("🔐 Error handling redirect result:", error);
         // Don't dispatch error for redirect result failures as they're often expected
+        // Continue with normal auth state listener
       }
     };
 
-    initializeAuth();
+    // Add a small delay to ensure Firebase is fully initialized
+    const timer = setTimeout(() => {
+      initializeAuth();
+    }, 100);
 
     // Set up auth state listener
     const unsubscribe = onAuthStateChange((user) => {
@@ -39,6 +47,7 @@ export default function AuthProvider({
 
     return () => {
       console.log("🔐 Cleaning up auth listener");
+      clearTimeout(timer);
       unsubscribe();
     };
   }, [dispatch]);

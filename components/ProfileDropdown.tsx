@@ -20,6 +20,19 @@ import { toast } from "sonner";
 export function ProfileDropdown() {
   const user = useAppSelector((state: RootState) => state.user.user);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // Debug logging
+  console.log("🔍 ProfileDropdown - User data:", {
+    user: user
+      ? {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          hasPhotoURL: !!user.photoURL,
+        }
+      : null,
+  });
 
   const handleSignOut = async () => {
     try {
@@ -56,19 +69,27 @@ export function ProfileDropdown() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="relative h-8 w-8 rounded-full"
+          className="relative h-8 w-8 rounded-full bg-gray-200 hover:bg-gray-300"
           disabled={isLoading}
         >
-          {user.photoURL ? (
+          {user.photoURL && !imageError ? (
             <Image
               src={user.photoURL}
               alt={user.displayName || user.email || "User"}
               width={32}
               height={32}
-              className="rounded-full object-cover"
+              className="h-8 w-8 rounded-full object-cover"
+              unoptimized
+              onError={() => {
+                console.log("❌ Image failed to load:", user.photoURL);
+                setImageError(true);
+              }}
+              onLoad={() => {
+                console.log("✅ Image loaded successfully:", user.photoURL);
+              }}
             />
           ) : (
-            <User className="h-4 w-4" />
+            <User className="h-4 w-4 text-gray-600" />
           )}
         </Button>
       </DropdownMenuTrigger>
