@@ -399,7 +399,8 @@ export default function UploadPage() {
                       />
                     </div>
                     <p className="text-xs text-gray-500 mt-2 text-center">
-                      Scan with your phone&apos;s camera to open the download link
+                      Scan with your phone&apos;s camera to open the download
+                      link
                     </p>
                   </div>
                 )}

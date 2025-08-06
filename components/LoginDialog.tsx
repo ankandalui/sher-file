@@ -25,13 +25,30 @@ export function LoginDialog({ children }: LoginDialogProps) {
   const handleGoogleSignIn = async () => {
     try {
       dispatch(setLoading(true));
+      console.log("🔐 LoginDialog: Starting Google sign-in...");
+
       const user = await signInWithGoogle();
-      dispatch(setUser(user));
-      setOpen(false);
-    } catch (error) {
-      dispatch(
-        setError(error instanceof Error ? error.message : "Sign in failed")
-      );
+
+      if (user) {
+        console.log("🔐 LoginDialog: Sign-in successful, updating store");
+        dispatch(setUser(user));
+        setOpen(false);
+      } else {
+        console.log("🔐 LoginDialog: Redirect initiated, dialog will close");
+        // For redirect flow, user will be null but that's expected
+        setOpen(false);
+      }
+    } catch (error: any) {
+      console.error("🔐 LoginDialog: Sign-in error:", error);
+      const errorMessage = error.message || "Sign in failed. Please try again.";
+      dispatch(setError(errorMessage));
+
+      // Show user-friendly toast
+      import("sonner").then(({ toast }) => {
+        toast.error(errorMessage);
+      });
+    } finally {
+      dispatch(setLoading(false));
     }
   };
 

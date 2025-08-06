@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   User,
@@ -88,15 +90,115 @@ console.log("Firebase Services Debug:", {
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 
-// Sign in with Google
+// Configure Google Auth Provider
+googleProvider.addScope("email");
+googleProvider.addScope("profile");
+googleProvider.setCustomParameters({
+  prompt: "select_account",
+});
+
+// Detect if we're in a mobile browser or popup blocker environment
+const isMobile = () => {
+  if (typeof window === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
+
+const shouldUseRedirect = () => {
+  return isMobile() || (window.navigator as any).standalone === true;
+};
+
+// Sign in with Google - with popup and redirect fallback
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    // Create or update user document in Firestore
-    await createOrUpdateUserDocument(result.user);
-    return result.user;
-  } catch (error) {
-    console.error("Error signing in with Google:", error);
+    console.log("🔐 Starting Google Sign-in...");
+    console.log("🔐 Should use redirect:", shouldUseRedirect());
+
+    let result;
+
+    if (shouldUseRedirect()) {
+      console.log("🔐 Using redirect method for mobile/PWA");
+      await signInWithRedirect(auth, googleProvider);
+      return null; // Redirect will handle the rest
+    } else {
+      console.log("🔐 Using popup method");
+      try {
+        result = await signInWithPopup(auth, googleProvider);
+      } catch (popupError: any) {
+        console.warn("🔐 Popup failed, trying redirect:", popupError);
+
+        // If popup fails (blocked by popup blocker), fall back to redirect
+        if (
+          popupError.code === "auth/popup-blocked" ||
+          popupError.code === "auth/popup-closed-by-user" ||
+          popupError.code === "auth/cancelled-popup-request"
+        ) {
+          console.log("🔐 Popup blocked, falling back to redirect");
+          await signInWithRedirect(auth, googleProvider);
+          return null;
+        }
+        throw popupError;
+      }
+    }
+
+    if (result && result.user) {
+      console.log("🔐 Google Sign-in successful:", result.user.email);
+      // Create or update user document in Firestore
+      await createOrUpdateUserDocument(result.user);
+      return result.user;
+    }
+
+    return null;
+  } catch (error: any) {
+    console.error("🔐 Error signing in with Google:", {
+      code: error.code,
+      message: error.message,
+      details: error,
+    });
+
+    // Provide user-friendly error messages
+    let userMessage = "Failed to sign in with Google";
+
+    switch (error.code) {
+      case "auth/popup-blocked":
+        userMessage = "Popup was blocked. Please allow popups and try again.";
+        break;
+      case "auth/popup-closed-by-user":
+        userMessage = "Sign-in was cancelled.";
+        break;
+      case "auth/network-request-failed":
+        userMessage = "Network error. Please check your connection.";
+        break;
+      case "auth/internal-error":
+        userMessage = "Internal error. Please try again.";
+        break;
+      case "auth/unauthorized-domain":
+        userMessage = "This domain is not authorized. Please contact support.";
+        break;
+    }
+
+    const enhancedError = new Error(userMessage);
+    (enhancedError as any).originalError = error;
+    throw enhancedError;
+  }
+};
+
+// Handle redirect result on app initialization
+export const handleRedirectResult = async () => {
+  try {
+    console.log("🔐 Checking for redirect result...");
+    const result = await getRedirectResult(auth);
+
+    if (result && result.user) {
+      console.log("🔐 Redirect sign-in successful:", result.user.email);
+      await createOrUpdateUserDocument(result.user);
+      return result.user;
+    }
+
+    return null;
+  } catch (error: any) {
+    console.error("🔐 Error handling redirect result:", error);
     throw error;
   }
 };
@@ -173,10 +275,13 @@ export const signOutUser = async () => {
 // Auth state listener
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, async (user) => {
+    console.log("🔐 Auth state changed:", user ? user.email : "No user");
+
     if (user) {
       // Ensure user document exists in Firestore
       await createOrUpdateUserDocument(user);
     }
+
     callback(user);
   });
 };

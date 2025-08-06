@@ -44,7 +44,7 @@ export default function RootLayout({
             href="mailto:adalui@gmail.com"
             className="text-gray-400 hover:text-gray-300 text-xs font-thin transition-colors duration-200"
           >
-            adalui@gmail.com
+            adalui260@gmail.com
           </a>
         </div>
       </body>

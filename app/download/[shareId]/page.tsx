@@ -98,7 +98,8 @@ export default function DownloadPage() {
           <div className="text-center text-white max-w-md mx-auto px-6">
             <h1 className="text-2xl font-bold mb-4">File Not Found</h1>
             <p className="text-gray-300 mb-6">
-              The file you&apos;re looking for doesn&apos;t exist or has been removed.
+              The file you&apos;re looking for doesn&apos;t exist or has been
+              removed.
             </p>
             <Button
               onClick={() => router.push("/")}
