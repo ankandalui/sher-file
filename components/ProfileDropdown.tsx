@@ -1,90 +1,103 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { signOutUser } from "@/utils/firebase";
-import { clearUser } from "@/store/userSlice";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { User, LogOut, Settings, RefreshCw } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
 import { RootState } from "@/store/store";
+import { signOutUser, clearAuthState } from "@/utils/firebase";
+import { toast } from "sonner";
 
 export function ProfileDropdown() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const dispatch = useAppDispatch();
   const user = useAppSelector((state: RootState) => state.user.user);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSignOut = async () => {
     try {
+      setIsLoading(true);
       await signOutUser();
-      dispatch(clearUser());
+      toast.success("Signed out successfully");
     } catch (error) {
       console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (!user || !isMounted) return null;
+  const handleSwitchAccount = async () => {
+    try {
+      setIsLoading(true);
+      await clearAuthState();
+      toast.success("Authentication cleared. Please sign in again.");
+      // Reload the page to ensure clean state
+      window.location.reload();
+    } catch (error) {
+      console.error("Error clearing auth state:", error);
+      toast.error("Failed to clear authentication");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!user) return null;
 
   return (
-    <div className="absolute top-4 right-4 z-50">
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="relative h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 p-0 overflow-hidden"
-          >
-            {user.photoURL ? (
-              <Image
-                src={user.photoURL}
-                alt={user.displayName || "Profile"}
-                width={48}
-                height={48}
-                className="rounded-full object-cover w-full h-full"
-              />
-            ) : (
-              <div className="h-full w-full rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-lg">
-                {user.displayName?.charAt(0) || user.email?.charAt(0) || "U"}
-              </div>
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-          <div className="flex items-center justify-start gap-2 p-2">
-            <div className="flex flex-col space-y-1 leading-none">
-              {user.displayName && (
-                <p className="font-medium">{user.displayName}</p>
-              )}
-              {user.email && (
-                <p className="w-[200px] truncate text-sm text-muted-foreground">
-                  {user.email}
-                </p>
-              )}
-            </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="relative h-8 w-8 rounded-full"
+          disabled={isLoading}
+        >
+          {user.photoURL ? (
+            <Image
+              src={user.photoURL}
+              alt={user.displayName || user.email || "User"}
+              width={32}
+              height={32}
+              className="rounded-full object-cover"
+            />
+          ) : (
+            <User className="h-4 w-4" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {user.displayName || "User"}
+            </p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
           </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="cursor-pointer">
-            Dashboard
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer text-red-600 focus:text-red-600"
-            onClick={handleSignOut}
-          >
-            Log out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSwitchAccount} disabled={isLoading}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          <span>Switch Account</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Settings</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSignOut} disabled={isLoading}>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Sign out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

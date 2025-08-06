@@ -182,6 +182,14 @@ export const signInWithGoogle = async () => {
       case "auth/unauthorized-domain":
         userMessage = "This domain is not authorized. Please contact support.";
         break;
+      case "auth/account-exists-with-different-credential":
+        userMessage =
+          "This account is already linked to another sign-in method.";
+        break;
+      case "auth/credential-already-in-use":
+        userMessage =
+          "This account is already in use. Please try a different account.";
+        break;
     }
 
     const enhancedError = new Error(userMessage);
@@ -205,7 +213,35 @@ export const handleRedirectResult = async () => {
 
     return null;
   } catch (error: unknown) {
-    console.error("🔐 Error handling redirect result:", error);
+    const authError = error as { code?: string; message?: string };
+    console.error("🔐 Error handling redirect result:", {
+      code: authError.code,
+      message: authError.message,
+      details: error,
+    });
+
+    // Handle specific mobile authentication errors
+    switch (authError.code) {
+      case "auth/account-exists-with-different-credential":
+        console.log(
+          "🔐 Account exists with different credential - user needs to link accounts"
+        );
+        break;
+      case "auth/credential-already-in-use":
+        console.log("🔐 Credential already in use - clearing auth state");
+        await signOutUser();
+        break;
+      case "auth/user-disabled":
+        console.log("🔐 User account is disabled");
+        break;
+      case "auth/operation-not-allowed":
+        console.log("🔐 Operation not allowed");
+        break;
+      case "auth/invalid-credential":
+        console.log("🔐 Invalid credential");
+        break;
+    }
+
     throw error;
   }
 };
@@ -272,9 +308,28 @@ export const updateUserUploadCount = async (userId: string) => {
 // Sign out
 export const signOutUser = async () => {
   try {
+    console.log("🔐 Signing out user...");
     await signOut(auth);
+    console.log("🔐 User signed out successfully");
   } catch (error) {
     console.error("Error signing out:", error);
+    throw error;
+  }
+};
+
+// Clear authentication state (useful for mobile device switching)
+export const clearAuthState = async () => {
+  try {
+    console.log("🔐 Clearing authentication state...");
+    await signOut(auth);
+    // Clear any stored auth data
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("firebase:authUser:");
+      sessionStorage.clear();
+    }
+    console.log("🔐 Authentication state cleared");
+  } catch (error) {
+    console.error("Error clearing auth state:", error);
     throw error;
   }
 };
