@@ -13,6 +13,7 @@ import {
 import { signInWithGoogle } from "@/utils/firebase";
 import { setUser, setLoading, setError } from "@/store/userSlice";
 import { useAppDispatch } from "@/store/hooks";
+import { toast } from "sonner";
 
 interface LoginDialogProps {
   children: React.ReactNode;
@@ -25,28 +26,18 @@ export function LoginDialog({ children }: LoginDialogProps) {
   const handleGoogleSignIn = async () => {
     try {
       dispatch(setLoading(true));
-      console.log("🔐 LoginDialog: Starting Google sign-in...");
-
+      dispatch(setError(""));
       const user = await signInWithGoogle();
-
       if (user) {
-        console.log("🔐 LoginDialog: Sign-in successful, updating store");
         dispatch(setUser(user));
         setOpen(false);
-      } else {
-        console.log("🔐 LoginDialog: Redirect initiated, dialog will close");
-        // For redirect flow, user will be null but that's expected
-        setOpen(false);
+        toast.success("Successfully signed in!");
       }
-    } catch (error: any) {
-      console.error("🔐 LoginDialog: Sign-in error:", error);
-      const errorMessage = error.message || "Sign in failed. Please try again.";
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Sign-in failed";
       dispatch(setError(errorMessage));
-
-      // Show user-friendly toast
-      import("sonner").then(({ toast }) => {
-        toast.error(errorMessage);
-      });
+      toast.error(errorMessage);
     } finally {
       dispatch(setLoading(false));
     }

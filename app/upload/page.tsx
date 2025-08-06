@@ -11,6 +11,9 @@ import {
   Shield,
   Zap,
   Globe,
+  Mail,
+  MessageCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,18 +105,13 @@ export default function UploadPage() {
       setUploadProgress(0);
       setCurrentFileName(file.name);
 
-      console.log("🚀 Calling uploadFileToStorage with:", {
-        fileName: file.name,
-        userId: user.uid,
-        fileSize: file.size,
-        hasProgressCallback: true,
-      });
+      console.log("📦 Uploading to Firebase Storage...");
 
       const { downloadURL, shareId } = await uploadFileToStorage(
         file,
         user.uid,
         (progress: number) => {
-          console.log("📊 Progress callback received:", {
+          console.log("📊 Upload progress callback received:", {
             progress,
             timestamp: new Date().toISOString(),
           });
@@ -188,6 +186,61 @@ export default function UploadPage() {
       console.error("Failed to copy to clipboard:", error);
       toast.error("Failed to copy link");
     }
+  };
+
+  // Social sharing functions
+  const shareToWhatsApp = (link: string, filename: string) => {
+    const message = `📁 File shared with you!\n\n📄 ${filename}\n🔗 ${link}\n\nDownload your file securely with Sharer.`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+    toast.success("Opening WhatsApp...");
+  };
+
+  const shareToEmail = (link: string, filename: string) => {
+    const subject = "File shared with you";
+    const body = `Hello!
+
+I've shared a file with you using Sharer.
+
+File: ${filename}
+Download link: ${link}
+
+You can download the file securely using the link above.
+
+Best regards`;
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl);
+    toast.success("Opening email client...");
+  };
+
+  const shareToOutlook = (link: string, filename: string) => {
+    const subject = "File shared with you";
+    const body = `Hello!
+
+I've shared a file with you using Sharer.
+
+File: ${filename}
+Download link: ${link}
+
+You can download the file securely using the link above.
+
+Best regards`;
+    const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+    window.open(outlookUrl, "_blank");
+    toast.success("Opening Outlook...");
+  };
+
+  const shareToTelegram = (link: string, filename: string) => {
+    const message = `📁 File shared with you!\n\n📄 ${filename}\n🔗 ${link}\n\nDownload your file securely with Sharer.`;
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(
+      link
+    )}&text=${encodeURIComponent(message)}`;
+    window.open(telegramUrl, "_blank");
+    toast.success("Opening Telegram...");
   };
 
   // Clean up QR code when dialog closes
@@ -348,8 +401,14 @@ export default function UploadPage() {
                         </div>
                         <div className="w-full bg-gray-700/30 rounded-full h-3">
                           <div
-                            className="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out"
-                            style={{ width: `${uploadProgress}%` }}
+                            className={`bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out progress-bar ${
+                              uploadProgress > 0 ? "animate-pulse" : ""
+                            }`}
+                            style={
+                              {
+                                "--progress-width": `${uploadProgress}%`,
+                              } as React.CSSProperties
+                            }
                           />
                         </div>
                       </div>
@@ -415,10 +474,63 @@ export default function UploadPage() {
                       type="text"
                       value={shareableLink}
                       readOnly
-                      className="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+                      className="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-sm text-black font-mono"
                     />
                     <Button onClick={copyToClipboard} size="sm">
                       <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Social Sharing */}
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-gray-700">
+                    Share via:
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={() =>
+                        shareToWhatsApp(shareableLink, currentFileName)
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      WhatsApp
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        shareToEmail(shareableLink, currentFileName)
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        shareToOutlook(shareableLink, currentFileName)
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Outlook
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        shareToTelegram(shareableLink, currentFileName)
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-blue-500 border-blue-200 hover:bg-blue-50"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Telegram
                     </Button>
                   </div>
                 </div>

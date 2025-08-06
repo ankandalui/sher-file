@@ -21,8 +21,30 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sher-file.vercel.app"),
   title: "Sharer - File Sharing Platform",
   description: "Secure, fast, and reliable file sharing for everyone",
+  openGraph: {
+    title: "Sharer - File Sharing Platform",
+    description: "Secure, fast, and reliable file sharing for everyone",
+    type: "website",
+    url: "https://sher-file.vercel.app",
+    siteName: "Sharer",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Sharer - File Sharing Platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sharer - File Sharing Platform",
+    description: "Secure, fast, and reliable file sharing for everyone",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({

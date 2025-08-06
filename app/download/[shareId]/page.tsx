@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Download, Upload, ArrowRight } from "lucide-react";
+import {
+  Download,
+  Upload,
+  ArrowRight,
+  Mail,
+  MessageCircle,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getFileByShareId } from "@/utils/firebase";
 import { toast } from "sonner";
@@ -15,7 +22,7 @@ interface FileData {
   originalName: string;
   size: number;
   type: string;
-  downloadURL: string;
+  downloadURL?: string;
   uploadedAt: Date | { seconds: number; nanoseconds: number };
 }
 
@@ -31,14 +38,16 @@ export default function DownloadPage() {
   useEffect(() => {
     const fetchFileData = async () => {
       try {
+        console.log("🔍 Fetching file data for shareId:", shareId);
         const data = await getFileByShareId(shareId);
         if (data) {
           setFileData(data as FileData);
         } else {
+          console.log("❌ File not found for shareId:", shareId);
           setFileData(null);
         }
       } catch (error) {
-        console.error("Error fetching file:", error);
+        console.error("❌ Error fetching file:", error);
         toast.error("File not found");
         setFileData(null);
       } finally {
@@ -52,14 +61,20 @@ export default function DownloadPage() {
   }, [shareId]);
 
   const handleDownload = async () => {
-    if (!fileData || !fileData.downloadURL) return;
+    if (!fileData) return;
 
     try {
       setDownloading(true);
+      console.log("⬇️ Starting download for file:", fileData.filename);
+
+      // Use the API route for downloads
+      const downloadUrl = `/api/download/${shareId}`;
+
+      console.log("🔗 Download URL:", downloadUrl);
 
       // Create a link and trigger download
       const link = document.createElement("a");
-      link.href = fileData.downloadURL;
+      link.href = downloadUrl;
       link.download = fileData.filename;
       link.target = "_blank";
       document.body.appendChild(link);
@@ -67,12 +82,72 @@ export default function DownloadPage() {
       document.body.removeChild(link);
 
       toast.success("Download started!");
+      console.log("✅ Download initiated successfully");
     } catch (error) {
-      console.error("Download error:", error);
+      console.error("❌ Download error:", error);
       toast.error("Download failed");
     } finally {
       setDownloading(false);
     }
+  };
+
+  // Social sharing functions
+  const shareToWhatsApp = () => {
+    const currentUrl = window.location.href;
+    const message = `📁 File shared with you!\n\n📄 ${fileData?.filename}\n🔗 ${currentUrl}\n\nDownload your file securely with Sharer.`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+    toast.success("Opening WhatsApp...");
+  };
+
+  const shareToEmail = () => {
+    const currentUrl = window.location.href;
+    const subject = "File shared with you";
+    const body = `Hello!
+
+I've shared a file with you using Sharer.
+
+File: ${fileData?.filename}
+Download link: ${currentUrl}
+
+You can download the file securely using the link above.
+
+Best regards`;
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl);
+    toast.success("Opening email client...");
+  };
+
+  const shareToOutlook = () => {
+    const currentUrl = window.location.href;
+    const subject = "File shared with you";
+    const body = `Hello!
+
+I've shared a file with you using Sharer.
+
+File: ${fileData?.filename}
+Download link: ${currentUrl}
+
+You can download the file securely using the link above.
+
+Best regards`;
+    const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+    window.open(outlookUrl, "_blank");
+    toast.success("Opening Outlook...");
+  };
+
+  const shareToTelegram = () => {
+    const currentUrl = window.location.href;
+    const message = `📁 File shared with you!\n\n📄 ${fileData?.filename}\n🔗 ${currentUrl}\n\nDownload your file securely with Sharer.`;
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(
+      currentUrl
+    )}&text=${encodeURIComponent(message)}`;
+    window.open(telegramUrl, "_blank");
+    toast.success("Opening Telegram...");
   };
 
   if (loading) {
@@ -164,6 +239,51 @@ export default function DownloadPage() {
                     </>
                   )}
                 </Button>
+
+                {/* Social Sharing */}
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-gray-300 text-center">
+                    Share this file:
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={shareToWhatsApp}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-green-400 border-green-400/20 hover:bg-green-400/10"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      WhatsApp
+                    </Button>
+                    <Button
+                      onClick={shareToEmail}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-blue-400 border-blue-400/20 hover:bg-blue-400/10"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </Button>
+                    <Button
+                      onClick={shareToOutlook}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-purple-400 border-purple-400/20 hover:bg-purple-400/10"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Outlook
+                    </Button>
+                    <Button
+                      onClick={shareToTelegram}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 text-blue-400 border-blue-400/20 hover:bg-blue-400/10"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Telegram
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
 

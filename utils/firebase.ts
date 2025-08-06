@@ -106,7 +106,11 @@ const isMobile = () => {
 };
 
 const shouldUseRedirect = () => {
-  return isMobile() || (window.navigator as any).standalone === true;
+  return (
+    isMobile() ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+      true
+  );
 };
 
 // Sign in with Google - with popup and redirect fallback
@@ -125,14 +129,15 @@ export const signInWithGoogle = async () => {
       console.log("🔐 Using popup method");
       try {
         result = await signInWithPopup(auth, googleProvider);
-      } catch (popupError: any) {
+      } catch (popupError: unknown) {
         console.warn("🔐 Popup failed, trying redirect:", popupError);
 
         // If popup fails (blocked by popup blocker), fall back to redirect
+        const error = popupError as { code?: string };
         if (
-          popupError.code === "auth/popup-blocked" ||
-          popupError.code === "auth/popup-closed-by-user" ||
-          popupError.code === "auth/cancelled-popup-request"
+          error.code === "auth/popup-blocked" ||
+          error.code === "auth/popup-closed-by-user" ||
+          error.code === "auth/cancelled-popup-request"
         ) {
           console.log("🔐 Popup blocked, falling back to redirect");
           await signInWithRedirect(auth, googleProvider);
@@ -150,17 +155,18 @@ export const signInWithGoogle = async () => {
     }
 
     return null;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const authError = error as { code?: string; message?: string };
     console.error("🔐 Error signing in with Google:", {
-      code: error.code,
-      message: error.message,
+      code: authError.code,
+      message: authError.message,
       details: error,
     });
 
     // Provide user-friendly error messages
     let userMessage = "Failed to sign in with Google";
 
-    switch (error.code) {
+    switch (authError.code) {
       case "auth/popup-blocked":
         userMessage = "Popup was blocked. Please allow popups and try again.";
         break;
@@ -179,7 +185,8 @@ export const signInWithGoogle = async () => {
     }
 
     const enhancedError = new Error(userMessage);
-    (enhancedError as any).originalError = error;
+    (enhancedError as Error & { originalError?: unknown }).originalError =
+      error;
     throw enhancedError;
   }
 };
@@ -197,7 +204,7 @@ export const handleRedirectResult = async () => {
     }
 
     return null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("🔐 Error handling redirect result:", error);
     throw error;
   }
@@ -286,7 +293,7 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
   });
 };
 
-// Upload file to Firebase Storage
+// Upload file to Firebase Storage and metadata to Firestore
 export const uploadFileToStorage = async (
   file: File,
   userId: string,
@@ -416,6 +423,7 @@ export const uploadFileToStorage = async (
             uploadedBy: userId,
             uploadedAt: new Date(),
             storageRef: uploadTask.snapshot.ref.fullPath,
+            storageType: "storage",
           };
 
           console.log("💾 File metadata to save:", {
