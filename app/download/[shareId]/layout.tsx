@@ -3,7 +3,7 @@ import { getFileByShareId } from "@/utils/firebase";
 
 interface DownloadLayoutProps {
   children: React.ReactNode;
-  params: { shareId: string };
+  params: Promise<{ shareId: string }>;
 }
 
 interface FileData {
@@ -19,8 +19,9 @@ interface FileData {
 export async function generateMetadata({
   params,
 }: DownloadLayoutProps): Promise<Metadata> {
+  const { shareId } = await params;
   try {
-    const fileData = await getFileByShareId(params.shareId);
+    const fileData = await getFileByShareId(shareId);
 
     if (!fileData) {
       return {
@@ -39,7 +40,7 @@ export async function generateMetadata({
         title: `${file.filename} - Shared via Sharer`,
         description: `Download ${file.filename} (${fileSizeMB} MB) securely with Sharer. Fast, reliable file sharing.`,
         type: "website",
-        url: `https://sher-file.vercel.app/download/${params.shareId}`,
+        url: `https://sher-file.vercel.app/download/${shareId}`,
         siteName: "Sharer",
         images: [
           {
