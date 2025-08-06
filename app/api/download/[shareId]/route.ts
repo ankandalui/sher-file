@@ -11,15 +11,16 @@ interface FileData {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { shareId: string } }
+  { params }: { params: Promise<{ shareId: string }> }
 ) {
+  const { shareId } = await params;
   try {
-    console.log("🔍 Download request for shareId:", params.shareId);
+    console.log("🔍 Download request for shareId:", shareId);
 
-    const fileData = await getFileByShareId(params.shareId);
+    const fileData = await getFileByShareId(shareId);
 
     if (!fileData) {
-      console.log("❌ File not found for shareId:", params.shareId);
+      console.log("❌ File not found for shareId:", shareId);
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
