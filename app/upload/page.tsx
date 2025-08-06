@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft,
   Share2,
@@ -179,18 +180,12 @@ export default function UploadPage() {
     }
   };
 
-  const cancelUpload = () => {
-    setUploading(false);
-    setUploadProgress(0);
-    setCurrentFileName("");
-    toast.info("Upload cancelled");
-  };
-
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(shareableLink);
       toast.success("Link copied to clipboard!");
     } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
       toast.error("Failed to copy link");
     }
   };
@@ -395,14 +390,16 @@ export default function UploadPage() {
                       Scan QR Code to Download
                     </p>
                     <div className="p-3 bg-white rounded-lg shadow-sm">
-                      <img
+                      <Image
                         src={qrCodeDataURL}
                         alt="QR Code for download link"
+                        width={160}
+                        height={160}
                         className="w-40 h-40"
                       />
                     </div>
                     <p className="text-xs text-gray-500 mt-2 text-center">
-                      Scan with your phone's camera to open the download link
+                      Scan with your phone&apos;s camera to open the download link
                     </p>
                   </div>
                 )}

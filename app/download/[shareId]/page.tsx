@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Download, Upload, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getFileByShareId } from "@/utils/firebase";
@@ -16,19 +16,17 @@ interface FileData {
   size: number;
   type: string;
   downloadURL: string;
-  uploadedAt: any;
+  uploadedAt: Date | { seconds: number; nanoseconds: number };
 }
 
 export default function DownloadPage() {
   const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
   const [fileData, setFileData] = useState<FileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
   const shareId = params.shareId as string;
-  const filename = searchParams.get("filename") || "Unknown File";
 
   useEffect(() => {
     const fetchFileData = async () => {
@@ -100,7 +98,7 @@ export default function DownloadPage() {
           <div className="text-center text-white max-w-md mx-auto px-6">
             <h1 className="text-2xl font-bold mb-4">File Not Found</h1>
             <p className="text-gray-300 mb-6">
-              The file you're looking for doesn't exist or has been removed.
+              The file you&apos;re looking for doesn&apos;t exist or has been removed.
             </p>
             <Button
               onClick={() => router.push("/")}
