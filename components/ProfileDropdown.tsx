@@ -30,8 +30,12 @@ export function ProfileDropdown() {
           displayName: user.displayName,
           photoURL: user.photoURL,
           hasPhotoURL: !!user.photoURL,
+          photoURLLength: user.photoURL?.length,
+          userType: typeof user,
+          userKeys: Object.keys(user),
         }
       : null,
+    imageError: imageError,
   });
 
   const handleSignOut = async () => {

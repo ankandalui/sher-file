@@ -90,11 +90,15 @@ console.log("Firebase Services Debug:", {
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 
-// Configure Google Auth Provider
+// Configure Google Auth Provider with specific scopes for profile image
 googleProvider.addScope("email");
 googleProvider.addScope("profile");
+googleProvider.addScope("https://www.googleapis.com/auth/userinfo.profile");
 googleProvider.setCustomParameters({
   prompt: "select_account",
+  // Add mobile-specific parameters
+  display: "popup", // This helps with mobile browsers
+  access_type: "online", // Don't need offline access for this app
 });
 
 // Detect if we're in a mobile browser or popup blocker environment
@@ -126,6 +130,13 @@ const shouldUseRedirect = () => {
   // Use redirect for smaller screens (mobile-like experience)
   if (window.innerWidth <= 768) {
     console.log("🔐 Small screen detected, using redirect");
+    return true;
+  }
+
+  // Check if we're in an embedded browser (like Facebook, Instagram, etc.)
+  const isEmbeddedBrowser = /FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+  if (isEmbeddedBrowser) {
+    console.log("🔐 Embedded browser detected, using redirect");
     return true;
   }
 
@@ -288,6 +299,15 @@ export const handleRedirectResult = async () => {
 export const createOrUpdateUserDocument = async (user: User) => {
   if (!user) return;
 
+  console.log("👤 Creating/updating user document for:", {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName,
+    photoURL: user.photoURL,
+    hasPhotoURL: !!user.photoURL,
+    photoURLLength: user.photoURL?.length || 0,
+  });
+
   const userRef = doc(db, "users", user.uid);
 
   try {
@@ -301,6 +321,13 @@ export const createOrUpdateUserDocument = async (user: User) => {
       lastSignIn: new Date(),
     };
 
+    console.log("👤 User data to save:", {
+      ...userData,
+      photoURL: userData.photoURL
+        ? `${userData.photoURL.substring(0, 50)}...`
+        : null,
+    });
+
     if (!userDoc.exists()) {
       // Create new user document
       await setDoc(userRef, {
@@ -308,14 +335,29 @@ export const createOrUpdateUserDocument = async (user: User) => {
         createdAt: new Date(),
         totalUploads: 0,
       });
-      console.log("New user document created:", user.uid);
+      console.log("👤 New user document created:", user.uid);
     } else {
       // Update existing user document
       await setDoc(userRef, userData, { merge: true });
-      console.log("User document updated:", user.uid);
+      console.log("👤 User document updated:", user.uid);
+    }
+
+    // Verify the saved data
+    const savedDoc = await getDoc(userRef);
+    if (savedDoc.exists()) {
+      const savedData = savedDoc.data();
+      console.log("👤 Verified saved user data:", {
+        uid: savedData.uid,
+        email: savedData.email,
+        displayName: savedData.displayName,
+        hasPhotoURL: !!savedData.photoURL,
+        photoURLPreview: savedData.photoURL
+          ? `${savedData.photoURL.substring(0, 50)}...`
+          : null,
+      });
     }
   } catch (error) {
-    console.error("Error creating/updating user document:", error);
+    console.error("❌ Error creating/updating user document:", error);
     // Don't throw error here to avoid blocking authentication
   }
 };
@@ -375,7 +417,18 @@ export const clearAuthState = async () => {
 // Auth state listener
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, async (user) => {
-    console.log("🔐 Auth state changed:", user ? user.email : "No user");
+    console.log(
+      "🔐 Auth state changed:",
+      user
+        ? {
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            hasPhotoURL: !!user.photoURL,
+            emailVerified: user.emailVerified,
+          }
+        : "No user"
+    );
 
     if (user) {
       // Ensure user document exists in Firestore

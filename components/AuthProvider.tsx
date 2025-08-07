@@ -17,11 +17,28 @@ export default function AuthProvider({
       try {
         // Handle redirect result first (for mobile/redirect auth)
         console.log("🔐 Initializing auth provider...");
+
+        // Check if we're likely coming from a redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasAuthParams =
+          urlParams.has("code") ||
+          urlParams.has("state") ||
+          window.location.hash.includes("access_token");
+
+        if (hasAuthParams) {
+          console.log("🔐 Detected potential auth redirect parameters");
+        }
+
         const redirectUser = await handleRedirectResult();
 
         if (redirectUser) {
           console.log("🔐 Redirect user found:", redirectUser.email);
           dispatch(setUser(redirectUser));
+
+          // Show success message for mobile users
+          import("sonner").then(({ toast }) => {
+            toast.success("Successfully signed in!");
+          });
         } else {
           console.log(
             "🔐 No redirect user found, continuing with auth state listener"
@@ -34,10 +51,20 @@ export default function AuthProvider({
       }
     };
 
-    // Add a small delay to ensure Firebase is fully initialized
+    // Add a longer delay for mobile devices to ensure proper initialization
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+
+    const delay = isMobile ? 500 : 100;
+    console.log(
+      `🔐 Using ${delay}ms delay for auth initialization (mobile: ${isMobile})`
+    );
+
     const timer = setTimeout(() => {
       initializeAuth();
-    }, 100);
+    }, delay);
 
     // Set up auth state listener
     const unsubscribe = onAuthStateChange((user) => {
