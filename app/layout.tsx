@@ -63,7 +63,7 @@ export default function RootLayout({
         {/* Global Contact Email */}
         <div className="fixed bottom-4 right-4 z-50">
           <a
-            href="mailto:adalui@gmail.com"
+            href="mailto:adalui260@gmail.com"
             className="text-gray-400 hover:text-gray-300 text-xs font-thin transition-colors duration-200"
           >
             adalui260@gmail.com
